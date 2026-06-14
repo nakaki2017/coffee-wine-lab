@@ -1,0 +1,147 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+  body {
+    @apply bg-cream-50 text-espresso-900 dark:bg-espresso-950 dark:text-cream-100 font-sans;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-coffee-600 text-white hover:bg-coffee-700 focus:ring-coffee-500 shadow-card hover:shadow-card-hover active:scale-[0.98];
+  }
+  .btn-secondary {
+    @apply btn bg-cream-200 text-espresso-800 hover:bg-cream-300 focus:ring-cream-400 dark:bg-espresso-800 dark:text-cream-200 dark:hover:bg-espresso-700;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-espresso-700 hover:bg-cream-200 focus:ring-cream-400 dark:text-cream-300 dark:hover:bg-espresso-800;
+  }
+  .btn-danger {
+    @apply btn bg-terracotta-600 text-white hover:bg-terracotta-700 focus:ring-terracotta-500;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs rounded-lg;
+  }
+  .btn-lg {
+    @apply px-6 py-3 text-base rounded-2xl;
+  }
+  .btn-icon {
+    @apply p-2 rounded-xl;
+  }
+
+  .card {
+    @apply bg-white dark:bg-espresso-900 rounded-2xl border border-cream-200 dark:border-espresso-800 shadow-card;
+  }
+  .card-hover {
+    @apply card hover:shadow-card-hover hover:border-coffee-300 dark:hover:border-coffee-700 transition-all duration-200 cursor-pointer;
+  }
+  .card-header {
+    @apply px-5 py-4 border-b border-cream-200 dark:border-espresso-800;
+  }
+  .card-body {
+    @apply px-5 py-4;
+  }
+
+  .input {
+    @apply w-full px-3 py-2 rounded-xl border border-cream-300 dark:border-espresso-700 bg-white dark:bg-espresso-900 text-espresso-900 dark:text-cream-100 placeholder-espresso-400 dark:placeholder-espresso-600 focus:outline-none focus:ring-2 focus:ring-coffee-500 focus:border-coffee-500 transition-colors text-sm;
+  }
+  .input-error {
+    @apply input border-terracotta-400 focus:ring-terracotta-500 focus:border-terracotta-500;
+  }
+  .label {
+    @apply block text-sm font-medium text-espresso-700 dark:text-cream-300 mb-1;
+  }
+  .error-text {
+    @apply text-xs text-terracotta-600 dark:text-terracotta-400 mt-1;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .badge-pending {
+    @apply badge bg-sand-200 text-sand-800 dark:bg-sand-800 dark:text-sand-200;
+  }
+  .badge-resting {
+    @apply badge bg-coffee-100 text-coffee-800 dark:bg-coffee-900 dark:text-coffee-300;
+  }
+  .badge-ready {
+    @apply badge bg-sage-100 text-sage-800 dark:bg-sage-900 dark:text-sage-300;
+  }
+  .badge-in-use {
+    @apply badge bg-cream-200 text-cream-800 dark:bg-cream-800 dark:text-cream-200;
+  }
+  .badge-finished {
+    @apply badge bg-espresso-100 text-espresso-700 dark:bg-espresso-800 dark:text-espresso-300;
+  }
+  .badge-archived {
+    @apply badge bg-espresso-200 text-espresso-600 dark:bg-espresso-700 dark:text-espresso-400;
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150;
+  }
+  .sidebar-link-active {
+    @apply sidebar-link bg-coffee-100 text-coffee-800 dark:bg-coffee-900/40 dark:text-coffee-300;
+  }
+  .sidebar-link-inactive {
+    @apply sidebar-link text-espresso-600 hover:bg-cream-100 hover:text-espresso-900 dark:text-espresso-400 dark:hover:bg-espresso-800 dark:hover:text-cream-200;
+  }
+
+  .page-title {
+    @apply text-2xl font-display font-bold text-espresso-900 dark:text-cream-100;
+  }
+  .section-title {
+    @apply text-lg font-display font-semibold text-espresso-800 dark:text-cream-200;
+  }
+
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-16 text-center;
+  }
+  .empty-icon {
+    @apply w-16 h-16 text-espresso-300 dark:text-espresso-600 mb-4;
+  }
+  .empty-title {
+    @apply text-lg font-medium text-espresso-600 dark:text-espresso-400 mb-2;
+  }
+  .empty-text {
+    @apply text-sm text-espresso-500 dark:text-espresso-500 max-w-sm;
+  }
+
+  .stat-value {
+    @apply text-3xl font-display font-bold text-espresso-900 dark:text-cream-100;
+  }
+  .stat-label {
+    @apply text-sm text-espresso-500 dark:text-espresso-400 mt-1;
+  }
+
+  .slider-track {
+    @apply w-full h-2 rounded-full bg-cream-200 dark:bg-espresso-700 appearance-none cursor-pointer;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  @apply w-5 h-5 rounded-full bg-coffee-600 appearance-none cursor-pointer shadow-card;
+}
+input[type="range"]::-moz-range-thumb {
+  @apply w-5 h-5 rounded-full bg-coffee-600 appearance-none cursor-pointer border-0 shadow-card;
+}
