@@ -89,10 +89,17 @@ project/
       Stats.tsx
   supabase/
     migrations/
+```
+
+项目文档统一维护在根目录：
+
+```text
+coffeelab-web/
   docs/
     PRD.md
     DESIGN.md
     ARCHITECTURE.md
+    COST.md
 ```
 
 【新增文件规则】

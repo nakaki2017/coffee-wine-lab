@@ -52,7 +52,7 @@ export default function Layout() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex overflow-x-hidden">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:flex-col lg:w-64 bg-white dark:bg-espresso-900 border-r border-cream-200 dark:border-espresso-800 fixed inset-y-0 z-30">
         <div className="flex items-center gap-3 px-5 py-5 border-b border-cream-200 dark:border-espresso-800">
@@ -98,15 +98,15 @@ export default function Layout() {
       </aside>
 
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white dark:bg-espresso-900 border-b border-cream-200 dark:border-espresso-800">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 w-full max-w-full bg-white dark:bg-espresso-900 border-b border-cream-200 dark:border-espresso-800">
         <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-coffee-600 flex items-center justify-center">
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="w-8 h-8 shrink-0 rounded-lg bg-coffee-600 flex items-center justify-center">
               <Coffee className="w-4 h-4 text-white" />
             </div>
-            <span className="font-display text-lg font-bold">{t('app.brand')}</span>
+            <span className="truncate font-display text-lg font-bold">{t('app.brand')}</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <button onClick={toggle} className="btn-ghost btn-icon">
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
@@ -152,29 +152,29 @@ export default function Layout() {
       )}
 
       {/* Mobile Bottom Tab Bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-espresso-900 border-t border-cream-200 dark:border-espresso-800">
-        <div className="flex justify-around py-2">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 w-full max-w-full overflow-hidden bg-white dark:bg-espresso-900 border-t border-cream-200 dark:border-espresso-800">
+        <div className="grid grid-cols-6 py-2">
           {bottomNavItems.map(item => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.to === '/'}
               className={({ isActive }) =>
-                `flex flex-col items-center gap-0.5 px-2 py-1 text-xs font-medium transition-colors ${
+                `flex min-w-0 flex-col items-center gap-0.5 px-1 py-1 text-xs font-medium transition-colors ${
                   isActive ? 'text-coffee-600 dark:text-coffee-400' : 'text-espresso-500 dark:text-espresso-500'
                 }`
               }
             >
-              <item.icon className="w-5 h-5" />
-              <span className="truncate max-w-[4rem]">{t(item.labelKey)}</span>
+              <item.icon className="h-5 w-5 shrink-0" />
+              <span className="max-w-full truncate">{t(item.labelKey)}</span>
             </NavLink>
           ))}
         </div>
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 pb-16 lg:pb-0">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+      <main className="min-w-0 flex-1 lg:ml-64 pt-14 lg:pt-0 pb-16 lg:pb-0">
+        <div className="min-w-0 max-w-6xl mx-auto overflow-x-hidden px-4 sm:px-6 py-6">
           <Outlet />
         </div>
       </main>

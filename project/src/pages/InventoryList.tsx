@@ -51,45 +51,47 @@ export default function InventoryList() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <div className="h-8 w-48 bg-cream-200 dark:bg-espresso-800 rounded-lg animate-pulse" />
+      <div className="space-y-4 pb-4 sm:pb-0">
+        <div className="h-8 w-40 sm:w-48 bg-cream-200 dark:bg-espresso-800 rounded-lg animate-pulse" />
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="card p-5 h-20 animate-pulse bg-cream-100 dark:bg-espresso-800" />
+          <div key={i} className="card p-4 sm:p-5 h-24 sm:h-20 animate-pulse bg-cream-100 dark:bg-espresso-800" />
         ))}
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6 pb-4 sm:pb-0">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="page-title">{t('inventory.title')}</h1>
-        <Link to="/inventory/new" className="btn-primary">
+        <Link to="/inventory/new" className="btn-primary w-full sm:w-auto">
           <Plus className="w-4 h-4" />
           {t('inventory.add_batch')}
         </Link>
       </div>
 
       {/* Status Filter Tabs */}
-      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
-        <Link
-          to="/inventory"
-          className={`btn-sm whitespace-nowrap ${!statusFilter ? 'bg-coffee-600 text-white' : 'bg-cream-200 text-espresso-700 dark:bg-espresso-800 dark:text-cream-300'}`}
-        >
-          {t('common.all')}
-        </Link>
-        {STATUS_ORDER.map(status => {
-          const count = batches.filter(b => b.status === status).length;
-          return (
-            <Link
-              key={status}
-              to={`/inventory?status=${status}`}
-              className={`btn-sm whitespace-nowrap ${statusFilter === status ? 'bg-coffee-600 text-white' : 'bg-cream-200 text-espresso-700 dark:bg-espresso-800 dark:text-cream-300'}`}
-            >
-              {getStatusLabelT(status, t)} ({count})
-            </Link>
-          );
-        })}
+      <div className="-mx-4 max-w-[calc(100%+2rem)] overflow-x-auto scrollbar-hide sm:mx-0 sm:max-w-full">
+        <div className="flex min-w-max gap-2 px-4 pb-1 sm:px-0 sm:pb-2">
+          <Link
+            to="/inventory"
+            className={`btn-sm inline-flex h-9 items-center whitespace-nowrap ${!statusFilter ? 'bg-coffee-600 text-white' : 'bg-cream-200 text-espresso-700 dark:bg-espresso-800 dark:text-cream-300'}`}
+          >
+            {t('common.all')}
+          </Link>
+          {STATUS_ORDER.map(status => {
+            const count = batches.filter(b => b.status === status).length;
+            return (
+              <Link
+                key={status}
+                to={`/inventory?status=${status}`}
+                className={`btn-sm inline-flex h-9 items-center whitespace-nowrap ${statusFilter === status ? 'bg-coffee-600 text-white' : 'bg-cream-200 text-espresso-700 dark:bg-espresso-800 dark:text-cream-300'}`}
+              >
+                {getStatusLabelT(status, t)} ({count})
+              </Link>
+            );
+          })}
+        </div>
       </div>
 
       <div className="relative">
@@ -105,7 +107,7 @@ export default function InventoryList() {
 
       {filtered.length === 0 ? (
         <div className="card">
-          <div className="card-body empty-state">
+          <div className="card-body flex flex-col items-center justify-center py-10 text-center sm:py-16">
             <Package className="empty-icon" />
             <p className="empty-title">{search || statusFilter ? t('inventory.none_found') : t('inventory.none_yet')}</p>
             <p className="empty-text">
@@ -132,10 +134,10 @@ export default function InventoryList() {
 
             return (
               <Link key={batch.id} to={`/inventory/${batch.id}`} className="card-hover p-4 block">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium text-espresso-900 dark:text-cream-100 truncate">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                      <h3 className="min-w-0 w-full truncate font-medium text-espresso-900 dark:text-cream-100 sm:w-auto sm:flex-1">
                         {batch.bean_profile?.bean_name || t('common.unknown')}
                       </h3>
                       <span className={getStatusBadgeClass(batch.status)}>
@@ -147,28 +149,30 @@ export default function InventoryList() {
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-espresso-500 dark:text-espresso-400 mt-0.5">
+                    <p className="mt-1 break-words text-sm text-espresso-500 dark:text-espresso-400 sm:truncate">
                       {batch.bean_profile?.brand}
                       {batch.batch_code && ` — ${batch.batch_code}`}
                     </p>
-                    <div className="flex items-center gap-4 mt-2 text-xs text-espresso-500 dark:text-espresso-500">
-                      {batch.purchase_date && <span>{t('inventory.bought', { date: batch.purchase_date })}</span>}
-                      {batch.roast_date && <span>{t('inventory.roasted', { date: batch.roast_date })}</span>}
-                      {restingInfo && <span className="text-coffee-600 dark:text-coffee-400 font-medium">{restingInfo}</span>}
+                    <div className="mt-3 flex flex-col gap-1 text-xs text-espresso-500 dark:text-espresso-500 sm:mt-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-1">
+                      {batch.purchase_date && <span className="min-w-0 break-words">{t('inventory.bought', { date: batch.purchase_date })}</span>}
+                      {batch.roast_date && <span className="min-w-0 break-words">{t('inventory.roasted', { date: batch.roast_date })}</span>}
+                      {restingInfo && <span className="min-w-0 break-words font-medium text-coffee-600 dark:text-coffee-400">{restingInfo}</span>}
                     </div>
                   </div>
 
-                  <div className="text-right ml-4 shrink-0">
-                    <div className="text-sm font-medium text-espresso-800 dark:text-cream-200">
-                      {batch.remaining_grams}g / {batch.weight_grams}g
-                    </div>
-                    {batch.price && (
-                      <div className="text-xs text-espresso-500">
-                        ${batch.price.toFixed(2)}
+                  <div className="w-full border-t border-cream-100 pt-3 dark:border-espresso-800 sm:ml-4 sm:w-auto sm:shrink-0 sm:border-0 sm:pt-0 sm:text-right">
+                    <div className="flex items-center justify-between gap-3 sm:block">
+                      <div className="text-sm font-medium text-espresso-800 dark:text-cream-200">
+                        {batch.remaining_grams}g / {batch.weight_grams}g
                       </div>
-                    )}
+                      {batch.price && (
+                        <div className="text-xs text-espresso-500">
+                          ${batch.price.toFixed(2)}
+                        </div>
+                      )}
+                    </div>
                     {remainingPct > 0 && remainingPct <= 100 && (
-                      <div className="w-16 h-1.5 bg-cream-200 dark:bg-espresso-700 rounded-full overflow-hidden mt-1 ml-auto">
+                      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-cream-200 dark:bg-espresso-700 sm:ml-auto sm:mt-1 sm:w-16">
                         <div
                           className={`h-full rounded-full transition-all ${
                             remainingPct > 50 ? 'bg-sage-500' :

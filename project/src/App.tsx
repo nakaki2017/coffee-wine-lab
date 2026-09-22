@@ -5,6 +5,7 @@ import { DarkModeProvider } from './contexts/DarkModeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import Layout from './components/Layout';
 import AuthPage from './pages/AuthPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import Dashboard from './pages/Dashboard';
 import BeansList from './pages/BeansList';
 import BeanForm from './pages/BeanForm';
@@ -47,6 +48,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route
         element={
           <AuthGuard>

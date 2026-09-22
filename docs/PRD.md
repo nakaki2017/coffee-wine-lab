@@ -781,7 +781,7 @@ MVP 统计项：
 - Supabase Database
 - Supabase Storage
 
-详细开发约束见 `docs/ARCHITECTURE.md`。
+详细开发约束见 `ARCHITECTURE.md`。
 
 ### 12.2 成本判断
 
