@@ -1,6 +1,6 @@
 # 测试账号登记
 
-最后维护：2026-09-23  
+最后维护：2026-09-24
 用途：本地开发、Vercel Preview 验收、截图和回归测试。
 
 ## 安全规则
@@ -16,7 +16,7 @@
 | 别名 | 计划邮箱 | 数据状态 | 用途 | 当前状态 |
 | --- | --- | --- | --- | --- |
 | empty | `coffee-empty-20260922@test.com` | 无业务数据 | 空状态、首次使用、前置拦截 | 已创建并验证 |
-| sample | `coffee-sample-20260922@test.com` | 2 个豆种、3 个批次、2 条冲煮、1 条杯测、1 个自定义做法、1 条日历记录 | 完整流程、用户手册截图、回归 | 已创建并初始化 |
+| sample | `coffee-sample-20260922@test.com` | 2 个豆种（其中 1 个有测试图片）、3 个批次、2 条冲煮、1 条杯测、1 个自定义做法、1 条有测试照片的日历记录 | 完整流程、用户手册截图、回归 | 已创建并初始化 |
 | mobile | `coffee-mobile-20260922@test.com` | 1 个豆种、1 个可冲煮批次、1 条冲煮 | 390px 移动端回归、导航和表单 | 已创建并初始化 |
 
 账号均创建于 Supabase 项目 `dglbnphrqfdeuartvjnq`，并在初始化时通过各自的登录会话验证了 RLS。
@@ -68,7 +68,7 @@
 - 3 个账号均返回有效 session，且 `email_confirmed_at` 已存在。
 - 使用各账号自己的 authenticated session 写入和读取业务数据，未使用 service role key，未直接写入 `auth.users`。
 - `empty` 验证：bean_profiles、batches、brew_records、cupping_records、daily_entries 和自定义 recipes 均为 0。
-- `sample` 验证：bean_profiles=2、batches=3、brew_records=2、cupping_records=1、自定义 recipes=1、daily_entries=1。
+- `sample` 验证：bean_profiles=2、batches=3、brew_records=2、cupping_records=1、自定义 recipes=1、daily_entries=1；本次图片回归增加 1 张豆种测试图片和 1 张日历测试照片。
 - `mobile` 验证：bean_profiles=1、batches=1、brew_records=1、cupping_records=0、自定义 recipes=0、daily_entries=0。
 - 本机密码文件 `.test-accounts.local` 权限为 `0600`，且由 `*.local` 规则忽略，不进入 Git 或 Vercel。
 

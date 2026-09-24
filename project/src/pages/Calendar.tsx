@@ -22,6 +22,8 @@ import {
 } from '../lib/utils';
 import { useToast } from '../contexts/ToastContext';
 import { useTranslation } from '../contexts/LanguageContext';
+import AdaptiveImage from '../components/AdaptiveImage';
+import ImageLightbox from '../components/ImageLightbox';
 
 const WEEKDAY_KEYS = ['cal.sun', 'cal.mon', 'cal.tue', 'cal.wed', 'cal.thu', 'cal.fri', 'cal.sat'];
 
@@ -41,6 +43,7 @@ export default function Calendar() {
   const [imageUrl, setImageUrl] = useState('');
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const selectedKey = selectedDate ? dateKey(selectedDate) : '';
 
@@ -102,6 +105,7 @@ export default function Calendar() {
     setSelectedDate(date);
     setNote(entry?.note || '');
     setImageUrl(entry?.image_url || '');
+    setLightboxOpen(false);
   }
 
   async function handleSave() {
@@ -127,6 +131,7 @@ export default function Calendar() {
       await deleteDailyEntry(selectedEntry.id);
       setNote('');
       setImageUrl('');
+      setLightboxOpen(false);
       setSelectedDate(null);
       addToast('success', t('toast.daily_deleted'));
       await loadMonth();
@@ -220,11 +225,9 @@ export default function Calendar() {
                   </div>
 
                   {entry?.image_url && (
-                    <img
-                      src={entry.image_url}
-                      alt=""
-                      className="w-full h-12 object-cover rounded-lg mb-1 border border-white/60 dark:border-espresso-700"
-                    />
+                    <span className="mb-1 flex h-12 w-full items-center justify-center overflow-hidden rounded-lg border border-white/60 bg-cream-200 dark:border-espresso-700 dark:bg-espresso-800">
+                      <AdaptiveImage src={entry.image_url} alt="" fit="adaptive" />
+                    </span>
                   )}
 
                   <div className="space-y-1">
@@ -247,7 +250,7 @@ export default function Calendar() {
       </div>
 
       {selectedDate && (
-        <div className="fixed inset-0 z-40 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setSelectedDate(null)}>
+        <div className="fixed inset-0 z-40 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => { setLightboxOpen(false); setSelectedDate(null); }}>
           <div
             className="w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-espresso-900 rounded-t-2xl sm:rounded-2xl shadow-elevated border border-cream-200 dark:border-espresso-800"
             onClick={e => e.stopPropagation()}
@@ -257,7 +260,7 @@ export default function Calendar() {
                 <h2 className="section-title">{t('cal.day_detail')}</h2>
                 <p className="text-sm text-espresso-500 mt-1">{format(selectedDate, 'MMMM d, yyyy')}</p>
               </div>
-              <button onClick={() => setSelectedDate(null)} className="btn-ghost btn-icon">
+              <button onClick={() => { setLightboxOpen(false); setSelectedDate(null); }} className="btn-ghost btn-icon">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -297,7 +300,15 @@ export default function Calendar() {
               <section className="space-y-3">
                 <h3 className="text-sm font-medium text-espresso-700 dark:text-cream-300">{t('cal.photo_label')}</h3>
                 {imageUrl ? (
-                  <img src={imageUrl} alt="" className="w-full max-h-80 object-cover rounded-xl border border-cream-200 dark:border-espresso-800" />
+                  <button
+                    type="button"
+                    className="flex aspect-[4/3] w-full cursor-zoom-in items-center justify-center overflow-hidden rounded-xl border border-cream-200 bg-cream-100 dark:border-espresso-800 dark:bg-espresso-950"
+                    onClick={() => setLightboxOpen(true)}
+                    aria-label={t('images.open_fullscreen')}
+                    title={t('images.open_fullscreen')}
+                  >
+                    <AdaptiveImage src={imageUrl} alt={t('cal.photo_label')} fit="contain" />
+                  </button>
                 ) : (
                   <div className="rounded-xl border border-dashed border-cream-300 dark:border-espresso-700 px-4 py-8 text-sm text-espresso-500 text-center">
                     {t('cal.no_photo')}
@@ -349,6 +360,16 @@ export default function Calendar() {
             </div>
           </div>
         </div>
+      )}
+      {selectedDate && imageUrl && (
+        <ImageLightbox
+          open={lightboxOpen}
+          images={[{ id: selectedKey, url: imageUrl }]}
+          currentId={selectedKey}
+          alt={t('cal.photo_label')}
+          onSelect={() => undefined}
+          onClose={() => setLightboxOpen(false)}
+        />
       )}
     </div>
   );

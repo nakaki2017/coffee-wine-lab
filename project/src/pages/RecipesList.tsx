@@ -6,6 +6,7 @@ import { DRINK_TYPES, RECIPE_BREW_DEVICES, getDrinkTypeLabel, getRecipeDeviceLab
 import { cloneRecipe, fetchRecipes } from '../lib/utils';
 import { useToast } from '../contexts/ToastContext';
 import { useTranslation } from '../contexts/LanguageContext';
+import AdaptiveImage from '../components/AdaptiveImage';
 
 interface RecipeCardProps { recipe: Recipe; cloning: boolean; onClone: (recipe: Recipe) => void; }
 
@@ -16,8 +17,8 @@ function RecipeCard({ recipe, cloning, onClone }: RecipeCardProps) {
   const secondaryName = recipe.is_default ? (language === 'zh' ? recipe.name_en : recipe.name_zh) : null;
   return (
     <article className="card overflow-hidden">
-      <Link to={`/recipes/${recipe.id}`} className="block aspect-[16/10] overflow-hidden bg-cream-200 dark:bg-espresso-800">
-        {cover ? <img src={cover} alt={displayName} className="h-full w-full object-cover transition-transform duration-200 hover:scale-[1.02]" /> : <span className="flex h-full items-center justify-center"><ImageIcon className="h-10 w-10 text-espresso-300 dark:text-espresso-600" /></span>}
+      <Link to={`/recipes/${recipe.id}`} className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-cream-200 dark:bg-espresso-800">
+        {cover ? <AdaptiveImage src={cover} alt={displayName} fit="adaptive" className="transition-transform duration-200 hover:scale-[1.02]" /> : <span className="flex h-full items-center justify-center"><ImageIcon className="h-10 w-10 text-espresso-300 dark:text-espresso-600" /></span>}
       </Link>
       <div className="card-body space-y-3">
         <div className="flex min-w-0 items-start justify-between gap-2">

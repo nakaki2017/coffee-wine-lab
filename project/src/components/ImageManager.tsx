@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { ArrowLeft, ArrowRight, ImagePlus, Star, Trash2 } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
+import AdaptiveImage from './AdaptiveImage';
 
 export interface ManagedImage {
   id: string;
@@ -89,8 +90,8 @@ export default function ImageManager({
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {images.map((image, index) => (
             <div key={image.id} className="min-w-0 border border-cream-200 bg-cream-50 dark:border-espresso-700 dark:bg-espresso-900">
-              <div className="relative aspect-square overflow-hidden bg-cream-200 dark:bg-espresso-800">
-                {image.url && <img src={image.url} alt="" className="h-full w-full object-cover" />}
+              <div className="relative flex aspect-square items-center justify-center overflow-hidden bg-cream-200 dark:bg-espresso-800">
+                {image.url && <AdaptiveImage src={image.url} alt="" fit="contain" />}
                 {index === 0 && (
                   <span className="absolute left-2 top-2 inline-flex items-center gap-1 bg-espresso-900/80 px-2 py-1 text-xs font-medium text-white">
                     <Star className="h-3 w-3 fill-current" />
