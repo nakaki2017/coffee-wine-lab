@@ -5,6 +5,7 @@ import type { BeanProfile } from '../lib/types';
 import { fetchBeanProfiles } from '../lib/utils';
 import { getRoastLabelT } from '../lib/types';
 import { useTranslation } from '../contexts/LanguageContext';
+import AdaptiveImage from '../components/AdaptiveImage';
 
 export default function BeansList() {
   const { t } = useTranslation();
@@ -94,11 +95,11 @@ export default function BeansList() {
           {filtered.map(bean => (
             <Link key={bean.id} to={`/beans/${bean.id}`} className="card-hover overflow-hidden">
               {(bean.images?.[0]?.url || bean.image_url) ? (
-                <div className="h-32 bg-cream-200 dark:bg-espresso-800 overflow-hidden">
-                  <img src={bean.images?.[0]?.url || bean.image_url || ''} alt={bean.bean_name} className="w-full h-full object-cover" />
+                <div className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-cream-200 dark:bg-espresso-800">
+                  <AdaptiveImage src={bean.images?.[0]?.url || bean.image_url || ''} alt={bean.bean_name} fit="adaptive" />
                 </div>
               ) : (
-                <div className="h-32 bg-gradient-to-br from-coffee-200 to-coffee-400 dark:from-coffee-800 dark:to-coffee-600 flex items-center justify-center">
+                <div className="flex aspect-[4/3] items-center justify-center bg-gradient-to-br from-coffee-200 to-coffee-400 dark:from-coffee-800 dark:to-coffee-600">
                   <Coffee className="w-10 h-10 text-coffee-600/40 dark:text-coffee-300/40" />
                 </div>
               )}

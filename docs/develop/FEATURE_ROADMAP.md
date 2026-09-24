@@ -1,6 +1,6 @@
 # Coffee Lab 功能 Roadmap
 
-最后维护：2026-09-23  
+最后维护：2026-09-24
 适用端：当前 Web；小程序作为后续独立端登记，不代表当前已适配。
 
 ## 1. 状态定义
@@ -34,6 +34,7 @@ Roadmap 负责功能状态和排期，具体需求、技术方案、测试及实
 | WI-20260922-ONBOARDING-FLOW | FEAT + FIX | DASH-006、DASH-007、DASH-008、INV-012、BREW-008 | Ready for Review | [新手流程与使用说明](../work-items/2026-09-22-feat-新手流程与使用说明.md) |
 | WI-20260923-MULTI-IMAGE-RECIPE | FEAT + DATA | BEAN-013、BEAN-014、RECIPE-007 至 RECIPE-010 | In Progress | [多图豆种与配方库](../work-items/2026-09-23-feat-多图豆种与配方库.md) |
 | WI-20260923-RECIPE-KIND-SPLIT | FEAT + DATA | RECIPE-007、RECIPE-008、RECIPE-011 至 RECIPE-013 | Ready for Review | [配方双入口与字段拆分](../work-items/2026-09-23-feat-配方双入口与字段拆分.md) |
+| WI-20260924-FIX-IMAGE-CROPPING | FIX + UX | BEAN-013、RECIPE-009、RECIPE-010、CAL-006 | Ready for Review | [上传图片显示裁切](../work-items/2026-09-24-fix-上传图片显示裁切.md) |
 
 ## 4. 功能总账
 
@@ -82,7 +83,7 @@ Roadmap 负责功能状态和排期，具体需求、技术方案、测试及实
 | BEAN-010 | 购买批次关联 | 已实现 | P0 | V1.0 / 2026-09 | Web | 5、6 |
 | BEAN-011 | 有活跃批次时禁止删除 | 已实现 | P0 | V1.0 / 2026-09 | Web | 5 | 2026-09-22 |
 | BEAN-012 | 自动从电商抓取豆子信息 | 暂不做 | P2 | 暂不排期 | Web | - |
-| BEAN-013 | 豆种最多 3 张上传图片、封面和排序 | 开发中 | P1 | V1.3 / 2026-12 | Web | 5 |
+| BEAN-013 | 豆种最多 3 张上传图片、封面、排序、自适应显示和全屏查看 | 开发中 | P1 | V1.3 / 2026-12 | Web | 5 |
 | BEAN-014 | 图片压缩至 800KB、私有 Storage 和 signed URL | 开发中 | P0 | V1.3 / 2026-12 | Web | 5、16 |
 
 ### 4.4 购买批次与库存
@@ -137,8 +138,8 @@ Roadmap 负责功能状态和排期，具体需求、技术方案、测试及实
 | RECIPE-006 | 从做法创建冲煮 | 已实现 | P1 | V1.0 / 2026-09 | Web | 10 |
 | RECIPE-007 | 冲煮做法/咖啡饮品双入口和配方详情 | 已实现 | P1 | V1.4 / 2027-01 | Web | 10 |
 | RECIPE-008 | 结构化原料、用量和制作步骤 | 已实现 | P1 | V1.4 / 2027-01 | Web | 10 |
-| RECIPE-009 | 内置配方最多 5 张图片 | 已实现 | P1 | V1.4 / 2027-01 | Web | 10 |
-| RECIPE-010 | 用户私有配方及最多 5 张图片 | 已实现 | P1 | V1.5 / 2027-02 | Web | 10、16 |
+| RECIPE-009 | 内置配方最多 5 张图片、自适应显示和全屏查看 | 已实现 | P1 | V1.4 / 2027-01 | Web | 10 |
+| RECIPE-010 | 用户私有配方及最多 5 张图片、自适应显示和全屏查看 | 已实现 | P1 | V1.5 / 2027-02 | Web | 10、16 |
 | RECIPE-011 | 配方名称、类型和器具/饮品筛选 | 已实现 | P1 | V1.4 / 2027-01 | Web | 10 |
 | RECIPE-012 | 内置配方中英文名称维护 | 已实现 | P1 | V1.4 / 2027-01 | Web | 10 |
 | RECIPE-013 | 冷萃饮品与冷萃浸泡做法并存 | 已实现 | P1 | V1.4 / 2027-01 | Web | 10 |
@@ -153,7 +154,7 @@ Roadmap 负责功能状态和排期，具体需求、技术方案、测试及实
 | CAL-003 | 当天详情查看全部冲煮 | 已实现 | P0 | V1.0 / 2026-09 | Web | drawer/panel | 11 |
 | CAL-004 | 日历快速新增冲煮 | 已实现 | P0 | V1.0 / 2026-09 | Web | query date | 11 |
 | CAL-005 | 当天备注和图片 URL | 已实现 | P0 | V1.0 / 2026-09 | Web | daily_entries | 11 |
-| CAL-006 | 上传/替换咖啡或拉花照片 | 已实现 | P0 | V1.0 / 2026-09 | Web | Supabase Storage | 11 |
+| CAL-006 | 上传/替换照片、自适应缩略图和全屏查看 | 已实现 | P0 | V1.0 / 2026-09 | Web | Supabase Storage | 11 |
 | CAL-007 | 删除当天记录 | 已实现 | P1 | V1.0 / 2026-09 | Web | daily_entries | 11 |
 | CAL-008 | 图片压缩、大小限制和私有 signed URL | 计划 | P1 | V1.3 / 2026-12 | Web | Storage policy | 11 |
 | CAL-009 | 多图相册和批量整理 | 计划 | P2 | V1.3 / 2026-12 | Web | Storage metadata | 11 |
