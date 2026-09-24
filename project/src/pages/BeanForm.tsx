@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
-import type { BeanProfile, RoastLevel } from '../lib/types';
+import type { BeanImage, BeanProfile, RoastLevel } from '../lib/types';
 import { fetchBeanProfile, createBeanProfile, updateBeanProfile } from '../lib/utils';
 import { ROAST_LEVELS } from '../lib/types';
 import { useToast } from '../contexts/ToastContext';
 import { useTranslation } from '../contexts/LanguageContext';
+import ImageManager, { type ManagedImage } from '../components/ImageManager';
+import { deleteBeanImage, reorderBeanImages, uploadBeanImage } from '../lib/utils';
 
 const EMPTY_FORM: Omit<BeanProfile, 'id' | 'user_id' | 'created_at' | 'updated_at'> = {
   brand: '',
@@ -27,20 +29,29 @@ const EMPTY_FORM: Omit<BeanProfile, 'id' | 'user_id' | 'created_at' | 'updated_a
 export default function BeanForm() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { addToast } = useToast();
   const { t } = useTranslation();
   const isEdit = !!id;
+  const returnTo = !isEdit && searchParams.get('returnTo') === '/inventory/new'
+    ? '/inventory/new'
+    : null;
+  const backPath = returnTo ? '/inventory' : '/beans';
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [imageBusy, setImageBusy] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [savedImages, setSavedImages] = useState<ManagedImage[]>([]);
+  const [pendingImages, setPendingImages] = useState<Array<{ id: string; file: File; url: string }>>([]);
 
   useEffect(() => {
     if (id) {
       setLoading(true);
       fetchBeanProfile(id).then(bean => {
         if (bean) {
-          const { id: _, user_id: __, created_at: ___, updated_at: ____, ...rest } = bean;
+          const { id: _, user_id: __, created_at: ___, updated_at: ____, images: beanImages, ...rest } = bean;
           setForm({ ...EMPTY_FORM, ...rest });
+          setSavedImages((beanImages || []).map(image => ({ id: image.id, url: image.url || image.external_url || undefined })));
         }
       }).catch(console.error).finally(() => setLoading(false));
     }
@@ -50,6 +61,70 @@ export default function BeanForm() {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
+  const images: ManagedImage[] = [
+    ...savedImages,
+    ...pendingImages.map(image => ({ id: image.id, url: image.url })),
+  ];
+
+  const handleAddImages = async (files: File[]) => {
+    const allowed = files.slice(0, 3 - images.length);
+    if (allowed.length === 0) return;
+    if (isEdit && id) {
+      setImageBusy(true);
+      try {
+        const uploaded: BeanImage[] = [];
+        for (const file of allowed) uploaded.push(await uploadBeanImage(id, file));
+        setSavedImages(previous => [...previous, ...uploaded.map(image => ({ id: image.id, url: image.url }))]);
+      } catch (err: any) {
+        addToast('error', err.message || t('toast.image_upload_failed'));
+      } finally {
+        setImageBusy(false);
+      }
+      return;
+    }
+    setPendingImages(previous => [
+      ...previous,
+      ...allowed.map(file => ({ id: crypto.randomUUID(), file, url: URL.createObjectURL(file) })),
+    ]);
+  };
+
+  const handleRemoveImage = async (imageId: string) => {
+    const pending = pendingImages.find(image => image.id === imageId);
+    if (pending) {
+      URL.revokeObjectURL(pending.url);
+      setPendingImages(previous => previous.filter(image => image.id !== imageId));
+      return;
+    }
+    if (!isEdit) return;
+    setImageBusy(true);
+    try {
+      await deleteBeanImage(imageId);
+      setSavedImages(previous => previous.filter(image => image.id !== imageId));
+    } catch (err: any) {
+      addToast('error', err.message || t('toast.image_delete_failed'));
+    } finally {
+      setImageBusy(false);
+    }
+  };
+
+  const handleReorderImages = async (imageIds: string[]) => {
+    const savedIds = new Set(savedImages.map(image => image.id));
+    if (imageIds.every(imageId => !savedIds.has(imageId))) {
+      setPendingImages(previous => imageIds.map(imageId => previous.find(image => image.id === imageId)).filter(Boolean) as typeof previous);
+      return;
+    }
+    if (!isEdit || !id || imageIds.some(imageId => !savedIds.has(imageId))) return;
+    setImageBusy(true);
+    try {
+      await reorderBeanImages(id, imageIds);
+      setSavedImages(previous => imageIds.map(imageId => previous.find(image => image.id === imageId)).filter(Boolean) as ManagedImage[]);
+    } catch (err: any) {
+      addToast('error', err.message || t('toast.image_order_failed'));
+    } finally {
+      setImageBusy(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -57,11 +132,16 @@ export default function BeanForm() {
       if (isEdit && id) {
         await updateBeanProfile(id, form);
         addToast('success', t('toast.bean_updated'));
+        navigate('/beans');
       } else {
-        await createBeanProfile(form);
-        addToast('success', t('toast.bean_created'));
+        const createdBean = await createBeanProfile(form);
+        let imageFailed = false;
+        for (const pending of pendingImages) {
+          try { await uploadBeanImage(createdBean.id, pending.file); } catch { imageFailed = true; }
+        }
+        addToast(imageFailed ? 'error' : 'success', imageFailed ? t('toast.bean_created_image_failed') : t('toast.bean_created'));
+        navigate(returnTo ? `${returnTo}?bean=${encodeURIComponent(createdBean.id)}` : '/beans');
       }
-      navigate('/beans');
     } catch (err: any) {
       addToast('error', err.message || t('toast.save_failed'));
     } finally {
@@ -76,7 +156,7 @@ export default function BeanForm() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
-        <button onClick={() => navigate('/beans')} className="btn-ghost btn-icon">
+        <button onClick={() => navigate(backPath)} className="btn-ghost btn-icon">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="page-title">{isEdit ? t('beans.edit') : t('beans.new')}</h1>
@@ -243,6 +323,17 @@ export default function BeanForm() {
               />
             </div>
 
+            <div className="sm:col-span-2 border-t border-cream-200 pt-4 dark:border-espresso-800">
+              <ImageManager
+                images={images}
+                maxImages={3}
+                busy={imageBusy || saving}
+                onAdd={handleAddImages}
+                onRemove={handleRemoveImage}
+                onReorder={handleReorderImages}
+              />
+            </div>
+
             <div className="sm:col-span-2">
               <label className="label">{t('beans.flavor_description')}</label>
               <textarea
@@ -255,7 +346,7 @@ export default function BeanForm() {
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-cream-200 dark:border-espresso-800">
-            <button type="button" onClick={() => navigate('/beans')} className="btn-secondary">
+            <button type="button" onClick={() => navigate(backPath)} className="btn-secondary">
               {t('common.cancel')}
             </button>
             <button type="submit" disabled={saving} className="btn-primary">

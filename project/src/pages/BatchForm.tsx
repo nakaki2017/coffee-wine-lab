@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 import type { BeanProfile, BatchStatus } from '../lib/types';
 import { fetchBeanProfiles, fetchBatch, createBatch, updateBatch } from '../lib/utils';
@@ -15,6 +15,8 @@ export default function BatchForm() {
   const { t } = useTranslation();
   const isEdit = !!id;
   const [loading, setLoading] = useState(false);
+  const [beansLoading, setBeansLoading] = useState(true);
+  const [beansLoadError, setBeansLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [beans, setBeans] = useState<BeanProfile[]>([]);
   const [beanSearch, setBeanSearch] = useState('');
@@ -36,8 +38,21 @@ export default function BatchForm() {
   });
 
   useEffect(() => {
-    fetchBeanProfiles().then(setBeans).catch(console.error);
+    loadBeans();
   }, []);
+
+  async function loadBeans() {
+    setBeansLoading(true);
+    setBeansLoadError(false);
+    try {
+      setBeans(await fetchBeanProfiles());
+    } catch (err) {
+      console.error(err);
+      setBeansLoadError(true);
+    } finally {
+      setBeansLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (id) {
@@ -116,8 +131,44 @@ export default function BatchForm() {
 
   const selectedBean = beans.find(b => b.id === form.bean_profile_id);
 
-  if (loading) {
+  if (loading || beansLoading) {
     return <div className="animate-pulse space-y-4"><div className="h-8 w-64 bg-cream-200 dark:bg-espresso-800 rounded-lg" /></div>;
+  }
+
+  if (!isEdit && beans.length === 0) {
+    return (
+      <div className="max-w-lg mx-auto space-y-6">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate('/inventory')} className="btn-ghost btn-icon" aria-label={t('inventory.back_to_inventory')}>
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="page-title">{t('inventory.new')}</h1>
+        </div>
+
+        <div className="card">
+          <div className="card-body empty-state py-12">
+            <div className="w-14 h-14 rounded-2xl bg-coffee-100 dark:bg-coffee-900/40 flex items-center justify-center mb-4">
+              <Save className="w-7 h-7 text-coffee-600 dark:text-coffee-400" />
+            </div>
+            <p className="empty-title">
+              {beansLoadError ? t('inventory.beans_load_failed_title') : t('inventory.no_bean_profiles_title')}
+            </p>
+            <p className="empty-text">
+              {beansLoadError ? t('inventory.beans_load_failed_text') : t('inventory.no_bean_profiles_text')}
+            </p>
+            {beansLoadError ? (
+              <button type="button" onClick={loadBeans} className="btn-primary mt-4">
+                {t('common.retry')}
+              </button>
+            ) : (
+              <Link to="/beans/new?returnTo=%2Finventory%2Fnew" className="btn-primary mt-4">
+                {t('inventory.create_bean_first')}
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

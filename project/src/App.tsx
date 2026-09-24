@@ -18,6 +18,7 @@ import BrewForm from './pages/BrewForm';
 import BrewDetail from './pages/BrewDetail';
 import RecipesList from './pages/RecipesList';
 import RecipeForm from './pages/RecipeForm';
+import RecipeDetail from './pages/RecipeDetail';
 import Stats from './pages/Stats';
 import Calendar from './pages/Calendar';
 
@@ -71,6 +72,7 @@ function AppRoutes() {
         <Route path="brews/:id/edit" element={<BrewForm />} />
         <Route path="recipes" element={<RecipesList />} />
         <Route path="recipes/new" element={<RecipeForm />} />
+        <Route path="recipes/:id" element={<RecipeDetail />} />
         <Route path="recipes/:id/edit" element={<RecipeForm />} />
         <Route path="calendar" element={<Calendar />} />
         <Route path="stats" element={<Stats />} />

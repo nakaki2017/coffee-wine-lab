@@ -1,205 +1,90 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, BookOpen, FlaskConical, Copy } from 'lucide-react';
-import type { Recipe, BrewDevice } from '../lib/types';
-import { fetchRecipes, createRecipe } from '../lib/utils';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { BookOpen, Copy, FlaskConical, ImageIcon, Plus, Search } from 'lucide-react';
+import type { BrewDevice, Recipe, RecipeKind } from '../lib/types';
+import { DRINK_TYPES, RECIPE_BREW_DEVICES, getDrinkTypeLabel, getRecipeDeviceLabelT, getRecipeDisplayName } from '../lib/types';
+import { cloneRecipe, fetchRecipes } from '../lib/utils';
 import { useToast } from '../contexts/ToastContext';
-import { getDeviceLabelT } from '../lib/types';
 import { useTranslation } from '../contexts/LanguageContext';
 
-const DEVICE_ICONS: Record<BrewDevice, string> = {
-  v60: 'V60',
-  origami: 'ORI',
-  kalita: 'KAL',
-  french_press: 'FP',
-  aeropress: 'AP',
-  espresso: 'ESP',
-  americano: 'AME',
-  latte: 'LAT',
-  cold_brew: 'CB',
-  other: 'OTH',
-};
+interface RecipeCardProps { recipe: Recipe; cloning: boolean; onClone: (recipe: Recipe) => void; }
+
+function RecipeCard({ recipe, cloning, onClone }: RecipeCardProps) {
+  const { language, t } = useTranslation();
+  const cover = recipe.images?.[0]?.url;
+  const displayName = getRecipeDisplayName(recipe, language);
+  const secondaryName = recipe.is_default ? (language === 'zh' ? recipe.name_en : recipe.name_zh) : null;
+  return (
+    <article className="card overflow-hidden">
+      <Link to={`/recipes/${recipe.id}`} className="block aspect-[16/10] overflow-hidden bg-cream-200 dark:bg-espresso-800">
+        {cover ? <img src={cover} alt={displayName} className="h-full w-full object-cover transition-transform duration-200 hover:scale-[1.02]" /> : <span className="flex h-full items-center justify-center"><ImageIcon className="h-10 w-10 text-espresso-300 dark:text-espresso-600" /></span>}
+      </Link>
+      <div className="card-body space-y-3">
+        <div className="flex min-w-0 items-start justify-between gap-2">
+          <div className="min-w-0">
+            <Link to={`/recipes/${recipe.id}`} className="font-display font-semibold text-espresso-900 hover:text-coffee-700 dark:text-cream-100 dark:hover:text-coffee-300">{displayName}</Link>
+            {secondaryName && <p className="mt-1 truncate text-xs text-espresso-400 dark:text-espresso-500">{secondaryName}</p>}
+            <p className="mt-1 text-xs text-espresso-500 dark:text-espresso-400">{recipe.recipe_kind === 'drink' ? getDrinkTypeLabel(recipe.drink_type, recipe.drink_type_custom, t) : getRecipeDeviceLabelT(recipe.device || 'other', t)}</p>
+          </div>
+          {recipe.is_default && <span className="badge shrink-0 bg-coffee-100 text-coffee-700 dark:bg-coffee-900 dark:text-coffee-300">{t('recipes.builtin_badge')}</span>}
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-xs text-espresso-600 dark:text-espresso-400">
+          {recipe.recipe_kind === 'brew_method' && recipe.default_dose_grams != null && <div>{recipe.default_dose_grams}g</div>}
+          {recipe.recipe_kind === 'brew_method' && recipe.default_yield_ml != null && <div>{recipe.default_yield_ml}ml</div>}
+          {recipe.recipe_kind === 'brew_method' && recipe.default_ratio && <div>{recipe.default_ratio}</div>}
+          {recipe.recipe_kind === 'drink' && recipe.ingredients.length > 0 && <div>{t('recipes.ingredient_count', { count: recipe.ingredients.length })}</div>}
+        </div>
+        <div className="flex gap-2">
+          <Link to={`/recipes/${recipe.id}`} className="btn-secondary btn-sm flex-1"><BookOpen className="h-3.5 w-3.5" />{t('common.view')}</Link>
+          {recipe.recipe_kind === 'brew_method' && <Link to={`/brews/new?recipe=${recipe.id}`} className="btn-primary btn-sm flex-1"><FlaskConical className="h-3.5 w-3.5" />{t('recipes.brew')}</Link>}
+          {recipe.is_default && <button type="button" className="btn-secondary btn-icon" disabled={cloning} onClick={() => onClone(recipe)} title={t('common.copy')}><Copy className="h-4 w-4" /></button>}
+        </div>
+      </div>
+    </article>
+  );
+}
 
 export default function RecipesList() {
   const { t } = useTranslation();
+  const { addToast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const kind: RecipeKind = searchParams.get('kind') === 'drink' ? 'drink' : 'brew_method';
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
-  const { addToast } = useToast();
+  const [search, setSearch] = useState('');
+  const [device, setDevice] = useState<'all' | BrewDevice>('all');
+  const [drinkType, setDrinkType] = useState('all');
+  const [cloningId, setCloningId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadRecipes();
-  }, []);
+  const loadRecipes = async () => { try { setRecipes(await fetchRecipes()); } catch (err) { console.error(err); } finally { setLoading(false); } };
+  useEffect(() => { void loadRecipes(); }, []);
 
-  async function loadRecipes() {
-    try {
-      const data = await fetchRecipes();
-      setRecipes(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const filtered = useMemo(() => recipes.filter(recipe => {
+    if (recipe.recipe_kind !== kind) return false;
+    const query = search.trim().toLowerCase();
+    const matchesSearch = !query || [recipe.name, recipe.name_zh, recipe.name_en].filter(Boolean).some(value => value!.toLowerCase().includes(query));
+    return matchesSearch && (kind === 'drink' || device === 'all' || recipe.device === device) && (kind === 'brew_method' || drinkType === 'all' || recipe.drink_type === drinkType);
+  }), [recipes, kind, search, device, drinkType]);
 
+  const handleKindChange = (nextKind: RecipeKind) => { setSearchParams({ kind: nextKind }); setSearch(''); setDevice('all'); setDrinkType('all'); };
   const handleClone = async (recipe: Recipe) => {
-    try {
-      await createRecipe({
-        name: `${recipe.name} (Copy)`,
-        device: recipe.device,
-        default_grind: recipe.default_grind,
-        default_temp_c: recipe.default_temp_c,
-        default_dose_grams: recipe.default_dose_grams,
-        default_yield_ml: recipe.default_yield_ml,
-        default_ratio: recipe.default_ratio,
-        default_time_seconds: recipe.default_time_seconds,
-        default_pour_scheme: recipe.default_pour_scheme,
-        default_filter: recipe.default_filter,
-        instructions: recipe.instructions,
-        is_default: false,
-      });
-      addToast('success', t('toast.recipe_cloned'));
-      loadRecipes();
-    } catch (err: any) {
-      addToast('error', err.message || t('toast.recipe_clone_failed'));
-    }
+    setCloningId(recipe.id);
+    try { await cloneRecipe(recipe, `${getRecipeDisplayName(recipe, 'zh')} (${t('recipes.clone_suffix')})`); addToast('success', t('toast.recipe_cloned')); await loadRecipes(); }
+    catch (err: any) { addToast('error', err.message || t('toast.recipe_clone_failed')); }
+    finally { setCloningId(null); }
   };
-
-  const defaults = recipes.filter(r => r.is_default);
-  const customs = recipes.filter(r => !r.is_default);
-
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <div className="h-8 w-48 bg-cream-200 dark:bg-espresso-800 rounded-lg animate-pulse" />
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="card p-5 h-24 animate-pulse bg-cream-100 dark:bg-espresso-800" />
-        ))}
-      </div>
-    );
-  }
+  const defaults = filtered.filter(recipe => recipe.is_default);
+  const customs = filtered.filter(recipe => !recipe.is_default);
+  if (loading) return <div className="space-y-4"><div className="h-8 w-48 animate-pulse bg-cream-200 dark:bg-espresso-800" />{[0, 1, 2].map(item => <div key={item} className="card h-28 animate-pulse bg-cream-100 dark:bg-espresso-800" />)}</div>;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="page-title">{t('recipes.title')}</h1>
-        <Link to="/recipes/new" className="btn-primary">
-          <Plus className="w-4 h-4" />
-          {t('recipes.new')}
-        </Link>
-      </div>
-
-      {/* Default Recipes */}
-      {defaults.length > 0 && (
-        <div>
-          <h2 className="section-title mb-3">{t('recipes.built_in')}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {defaults.map(recipe => (
-              <div key={recipe.id} className="card hover:shadow-card-hover transition-shadow">
-                <div className="card-body">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-coffee-100 dark:bg-coffee-900/40 flex items-center justify-center">
-                      <span className="text-xs font-bold text-coffee-600 dark:text-coffee-400">
-                        {DEVICE_ICONS[recipe.device]}
-                      </span>
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-espresso-900 dark:text-cream-100">{recipe.name}</h3>
-                      <span className="text-xs text-espresso-500">{getDeviceLabelT(recipe.device, t)}</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs text-espresso-600 dark:text-espresso-400">
-                    {recipe.default_dose_grams && (
-                      <div>{t('recipes.default_dose')}: {recipe.default_dose_grams}g</div>
-                    )}
-                    {recipe.default_yield_ml && (
-                      <div>{t('recipes.default_yield')}: {recipe.default_yield_ml}ml</div>
-                    )}
-                    {recipe.default_ratio && (
-                      <div>{t('recipes.default_ratio')}: {recipe.default_ratio}</div>
-                    )}
-                    {recipe.default_temp_c && (
-                      <div>{t('recipes.default_temp')}: {recipe.default_temp_c}°C</div>
-                    )}
-                    {recipe.default_grind && (
-                      <div>{t('recipes.default_grind')}: {recipe.default_grind}</div>
-                    )}
-                    {recipe.default_time_seconds && (
-                      <div>{t('recipes.default_time')}: {recipe.default_time_seconds >= 60 ? `${Math.floor(recipe.default_time_seconds / 60)}m${recipe.default_time_seconds % 60 ? `${recipe.default_time_seconds % 60}s` : ''}` : `${recipe.default_time_seconds}s`}</div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2 mt-3">
-                    <Link
-                      to={`/brews/new?recipe=${recipe.id}`}
-                      className="btn-sm btn-primary flex-1"
-                    >
-                      <FlaskConical className="w-3 h-3" />
-                      {t('recipes.brew')}
-                    </Link>
-                    <button onClick={() => handleClone(recipe)} className="btn-sm btn-secondary">
-                      <Copy className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Custom Recipes */}
-      {customs.length > 0 && (
-        <div>
-          <h2 className="section-title mb-3">{t('recipes.my')}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {customs.map(recipe => (
-              <div key={recipe.id} className="card-hover">
-                <div className="card-body">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-sage-100 dark:bg-sage-900/40 flex items-center justify-center">
-                      <span className="text-xs font-bold text-sage-600 dark:text-sage-400">
-                        {DEVICE_ICONS[recipe.device]}
-                      </span>
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-espresso-900 dark:text-cream-100">{recipe.name}</h3>
-                      <span className="text-xs text-espresso-500">{getDeviceLabelT(recipe.device, t)}</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs text-espresso-600 dark:text-espresso-400">
-                    {recipe.default_dose_grams && <div>{t('recipes.default_dose')}: {recipe.default_dose_grams}g</div>}
-                    {recipe.default_yield_ml && <div>{t('recipes.default_yield')}: {recipe.default_yield_ml}ml</div>}
-                    {recipe.default_ratio && <div>{t('recipes.default_ratio')}: {recipe.default_ratio}</div>}
-                    {recipe.default_temp_c && <div>{t('recipes.default_temp')}: {recipe.default_temp_c}°C</div>}
-                  </div>
-
-                  <div className="flex gap-2 mt-3">
-                    <Link to={`/brews/new?recipe=${recipe.id}`} className="btn-sm btn-primary flex-1">
-                      <FlaskConical className="w-3 h-3" />
-                      {t('recipes.brew')}
-                    </Link>
-                    <Link to={`/recipes/${recipe.id}/edit`} className="btn-sm btn-secondary">
-                      {t('common.edit')}
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {recipes.length === 0 && (
-        <div className="card">
-          <div className="card-body empty-state">
-            <BookOpen className="empty-icon" />
-            <p className="empty-title">{t('recipes.none_yet')}</p>
-            <p className="empty-text">{t('recipes.empty_text')}</p>
-          </div>
-        </div>
-      )}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><h1 className="page-title">{t('recipes.library_title')}</h1><Link to={`/recipes/new?kind=${kind}`} className="btn-primary w-full sm:w-auto"><Plus className="h-4 w-4" />{kind === 'drink' ? t('recipes.new_drink') : t('recipes.new_brew_method')}</Link></div>
+      <div className="grid grid-cols-2 gap-1 bg-cream-100 p-1 dark:bg-espresso-800">{(['brew_method', 'drink'] as RecipeKind[]).map(item => <button key={item} type="button" onClick={() => handleKindChange(item)} className={`h-10 px-3 text-sm font-medium transition-colors ${kind === item ? 'bg-white text-coffee-700 shadow-card dark:bg-espresso-700 dark:text-coffee-300' : 'text-espresso-500 dark:text-espresso-400'}`}>{t(`recipes.kind_${item}`)}</button>)}</div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_200px]"><div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-espresso-400" /><input className="input pl-10" value={search} onChange={event => setSearch(event.target.value)} placeholder={t('recipes.search_placeholder')} /></div>{kind === 'brew_method' ? <select className="input" value={device} onChange={event => setDevice(event.target.value as 'all' | BrewDevice)}><option value="all">{t('recipes.device_all')}</option>{RECIPE_BREW_DEVICES.map(item => <option key={item.value} value={item.value}>{t(item.label)}</option>)}</select> : <select className="input" value={drinkType} onChange={event => setDrinkType(event.target.value)}><option value="all">{t('recipes.drink_type_all')}</option>{DRINK_TYPES.map(item => <option key={item.value} value={item.value}>{t(item.label)}</option>)}</select>}</div>
+      {defaults.length > 0 && <section><h2 className="section-title mb-3">{t('recipes.built_in')}</h2><div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">{defaults.map(recipe => <RecipeCard key={recipe.id} recipe={recipe} cloning={cloningId === recipe.id} onClone={handleClone} />)}</div></section>}
+      {customs.length > 0 && <section><h2 className="section-title mb-3">{t('recipes.my')}</h2><div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">{customs.map(recipe => <RecipeCard key={recipe.id} recipe={recipe} cloning={false} onClone={handleClone} />)}</div></section>}
+      {filtered.length === 0 && <div className="card"><div className="card-body empty-state"><BookOpen className="empty-icon" /><p className="empty-title">{t('recipes.none_found')}</p><p className="empty-text">{t('recipes.search_empty')}</p></div></div>}
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Save, BookOpen } from 'lucide-react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Save, BookOpen, Package } from 'lucide-react';
 import type { Batch, BrewDevice, Recipe, PourStep } from '../lib/types';
 import { fetchBatches, fetchRecipes, fetchBrewRecord, createBrewRecord, updateBrewRecord } from '../lib/utils';
-import { BREW_DEVICES } from '../lib/types';
+import { BREW_DEVICES, getRecipeDisplayName } from '../lib/types';
 import { useToast } from '../contexts/ToastContext';
 import { useTranslation } from '../contexts/LanguageContext';
 
@@ -18,9 +18,10 @@ export default function BrewForm() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { addToast } = useToast();
-  const { t } = useTranslation();
+  const { language, t } = useTranslation();
   const isEdit = !!id;
   const [loading, setLoading] = useState(false);
+  const [batchesLoading, setBatchesLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [batches, setBatches] = useState<Batch[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -49,9 +50,26 @@ export default function BrewForm() {
       fetchRecipes(),
     ]).then(([batchData, recipeData]) => {
       setBatches(batchData.filter(b => b.status === 'in_use' || b.status === 'ready'));
-      setRecipes(recipeData);
-    }).catch(console.error);
-  }, []);
+      const brewRecipes = recipeData.filter(recipe => recipe.recipe_kind === 'brew_method');
+      setRecipes(brewRecipes);
+      const requestedRecipe = brewRecipes.find(recipe => recipe.id === searchParams.get('recipe'));
+      if (requestedRecipe && !isEdit) {
+        setForm(previous => ({
+          ...previous,
+          recipe_id: requestedRecipe.id,
+          device: requestedRecipe.device || previous.device,
+          grind_setting: requestedRecipe.default_grind || previous.grind_setting,
+          water_temp_c: requestedRecipe.default_temp_c?.toString() || previous.water_temp_c,
+          dose_grams: requestedRecipe.default_dose_grams?.toString() || previous.dose_grams,
+          yield_ml: requestedRecipe.default_yield_ml?.toString() || previous.yield_ml,
+          ratio: requestedRecipe.default_ratio || previous.ratio,
+          total_time_seconds: requestedRecipe.default_time_seconds?.toString() || previous.total_time_seconds,
+          pour_scheme: requestedRecipe.default_pour_scheme || [],
+          filter_type: requestedRecipe.default_filter || previous.filter_type,
+        }));
+      }
+    }).catch(console.error).finally(() => setBatchesLoading(false));
+  }, [isEdit, searchParams]);
 
   useEffect(() => {
     if (id) {
@@ -90,7 +108,7 @@ export default function BrewForm() {
     setForm(prev => ({
       ...prev,
       recipe_id: recipe.id,
-      device: recipe.device,
+      device: recipe.device || prev.device,
       grind_setting: recipe.default_grind || prev.grind_setting,
       water_temp_c: recipe.default_temp_c?.toString() || prev.water_temp_c,
       dose_grams: recipe.default_dose_grams?.toString() || prev.dose_grams,
@@ -167,8 +185,40 @@ export default function BrewForm() {
     }
   };
 
-  if (loading) {
+  if (loading || (!isEdit && batchesLoading)) {
     return <div className="animate-pulse space-y-4"><div className="h-8 w-64 bg-cream-200 dark:bg-espresso-800 rounded-lg" /></div>;
+  }
+
+  if (!isEdit && !batchesLoading && batches.length === 0) {
+    return (
+      <div className="max-w-lg mx-auto space-y-6">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate('/brews')} className="btn-ghost btn-icon" aria-label={t('brews.back_to_brews')}>
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="page-title">{t('brews.new')}</h1>
+        </div>
+
+        <div className="card">
+          <div className="card-body empty-state py-12">
+            <div className="w-14 h-14 rounded-2xl bg-coffee-100 dark:bg-coffee-900/40 flex items-center justify-center mb-4">
+              <Package className="w-7 h-7 text-coffee-600 dark:text-coffee-400" />
+            </div>
+            <p className="empty-title">{t('brews.no_available_batches_title')}</p>
+            <p className="empty-text">{t('brews.no_available_batches_text')}</p>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <Link to="/inventory/new" className="btn-primary">
+                <Package className="w-4 h-4" />
+                {t('brews.create_batch_first')}
+              </Link>
+              <button type="button" onClick={() => navigate('/brews')} className="btn-secondary">
+                {t('brews.back_to_brews')}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -202,7 +252,7 @@ export default function BrewForm() {
                       : 'bg-cream-200 text-espresso-700 dark:bg-espresso-800 dark:text-cream-300'
                   }`}
                 >
-                  {recipe.name}
+                  {getRecipeDisplayName(recipe, language)}
                 </button>
               ))}
             </div>

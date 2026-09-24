@@ -11,6 +11,7 @@ import {
   BookOpen,
   CalendarDays,
   BarChart3,
+  HelpCircle,
   LogOut,
   Sun,
   Moon,
@@ -19,6 +20,7 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import UsageGuide from './UsageGuide';
 
 const NAV_ITEMS = [
   { to: '/', icon: LayoutDashboard, labelKey: 'nav.dashboard' },
@@ -36,6 +38,7 @@ export default function Layout() {
   const { language, toggleLanguage, t } = useTranslation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const bottomNavItems = useMemo(
     () => NAV_ITEMS.filter(item => item.to !== '/stats').slice(0, 6),
@@ -86,6 +89,14 @@ export default function Layout() {
           <button onClick={toggleLanguage} className="sidebar-link-inactive w-full">
             <Languages className="w-5 h-5" />
             {language === 'zh' ? t('nav.switch_to_en') : t('nav.switch_to_zh')}
+          </button>
+          <button
+            onClick={() => setHelpOpen(true)}
+            className="sidebar-link-inactive w-full"
+            aria-label={t('guide.open')}
+          >
+            <HelpCircle className="w-5 h-5" />
+            {t('guide.open')}
           </button>
           <div className="px-3 py-2 text-xs text-espresso-500 dark:text-espresso-500 truncate">
             {user?.email}
@@ -143,6 +154,13 @@ export default function Layout() {
                 {t(item.labelKey)}
               </NavLink>
             ))}
+            <button
+              onClick={() => { setMobileOpen(false); setHelpOpen(true); }}
+              className="sidebar-link-inactive w-full"
+            >
+              <HelpCircle className="w-5 h-5" />
+              {t('guide.open')}
+            </button>
             <button onClick={handleSignOut} className="sidebar-link-inactive w-full text-terracotta-600 dark:text-terracotta-400">
               <LogOut className="w-5 h-5" />
               {t('nav.sign_out')}
@@ -178,6 +196,7 @@ export default function Layout() {
           <Outlet />
         </div>
       </main>
+      <UsageGuide open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   );
 }

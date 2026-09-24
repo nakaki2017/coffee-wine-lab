@@ -2,6 +2,9 @@ export type RoastLevel = 'light' | 'medium_light' | 'medium' | 'medium_dark' | '
 export type BatchStatus = 'pending' | 'resting' | 'ready' | 'in_use' | 'finished' | 'archived';
 export type BrewDevice = 'v60' | 'origami' | 'kalita' | 'french_press' | 'aeropress' | 'espresso' | 'americano' | 'latte' | 'cold_brew' | 'other';
 export type FlavorCategory = 'fruity' | 'nutty' | 'floral' | 'chocolate' | 'spice' | 'sweet' | 'herbal' | 'other';
+export type RecipeKind = 'brew_method' | 'drink';
+export type DrinkType = 'americano' | 'iced_americano' | 'latte' | 'dirty_latte' | 'mocha' | 'cold_brew' | 'citrus_americano' | 'other';
+export type ImageSourceType = 'upload' | 'external_url';
 
 export interface BeanProfile {
   id: string;
@@ -22,6 +25,19 @@ export interface BeanProfile {
   image_url: string | null;
   created_at: string;
   updated_at: string;
+  images?: BeanImage[];
+}
+
+export interface BeanImage {
+  id: string;
+  bean_profile_id: string;
+  user_id: string;
+  source_type: ImageSourceType;
+  storage_path: string | null;
+  external_url: string | null;
+  sort_order: number;
+  created_at: string;
+  url?: string;
 }
 
 export interface Batch {
@@ -49,7 +65,11 @@ export interface Recipe {
   id: string;
   user_id: string | null;
   name: string;
-  device: BrewDevice;
+  name_zh: string | null;
+  name_en: string | null;
+  device: BrewDevice | null;
+  drink_type: DrinkType | null;
+  drink_type_custom: string | null;
   default_grind: string | null;
   default_temp_c: number | null;
   default_dose_grams: number | null;
@@ -60,8 +80,36 @@ export interface Recipe {
   default_filter: string | null;
   instructions: string | null;
   is_default: boolean;
+  recipe_kind: RecipeKind;
+  ingredients: RecipeIngredient[];
+  steps: RecipeStep[];
   created_at: string;
   updated_at: string;
+  images?: RecipeImage[];
+}
+
+export interface RecipeIngredient {
+  name: string;
+  amount: number | string;
+  unit: string;
+}
+
+export interface RecipeStep {
+  order: number;
+  title: string;
+  description: string;
+  duration_seconds?: number | null;
+}
+
+export interface RecipeImage {
+  id: string;
+  recipe_id: string;
+  source_type: ImageSourceType;
+  storage_path: string | null;
+  external_url: string | null;
+  sort_order: number;
+  created_at: string;
+  url?: string;
 }
 
 export interface PourStep {
@@ -162,6 +210,28 @@ export const BREW_DEVICES: { value: BrewDevice; label: string }[] = [
   { value: 'other', label: 'device.other' },
 ];
 
+export const RECIPE_BREW_DEVICES: { value: BrewDevice; label: string }[] = [
+  { value: 'v60', label: 'device.v60' },
+  { value: 'origami', label: 'device.origami' },
+  { value: 'kalita', label: 'device.kalita' },
+  { value: 'french_press', label: 'device.french_press' },
+  { value: 'aeropress', label: 'device.aeropress' },
+  { value: 'espresso', label: 'device.espresso' },
+  { value: 'cold_brew', label: 'device.cold_brew_method' },
+  { value: 'other', label: 'device.other' },
+];
+
+export const DRINK_TYPES: { value: DrinkType; label: string }[] = [
+  { value: 'americano', label: 'drink.americano' },
+  { value: 'iced_americano', label: 'drink.iced_americano' },
+  { value: 'latte', label: 'drink.latte' },
+  { value: 'dirty_latte', label: 'drink.dirty_latte' },
+  { value: 'mocha', label: 'drink.mocha' },
+  { value: 'cold_brew', label: 'drink.cold_brew' },
+  { value: 'citrus_americano', label: 'drink.citrus_americano' },
+  { value: 'other', label: 'drink.other' },
+];
+
 export const STATUS_ORDER: BatchStatus[] = ['pending', 'resting', 'ready', 'in_use', 'finished', 'archived'];
 
 export function getNextStatus(current: BatchStatus): BatchStatus | null {
@@ -196,6 +266,21 @@ export function getStatusLabel(status: BatchStatus): string {
 
 export function getDeviceLabelT(device: BrewDevice, t: TFunction): string {
   return t(getDeviceLabel(device));
+}
+
+export function getRecipeDeviceLabelT(device: BrewDevice, t: TFunction): string {
+  return device === 'cold_brew' ? t('device.cold_brew_method') : getDeviceLabelT(device, t);
+}
+
+export function getRecipeDisplayName(recipe: Pick<Recipe, 'name' | 'name_zh' | 'name_en'>, language: 'zh' | 'en'): string {
+  if (language === 'zh') return recipe.name_zh || recipe.name_en || recipe.name;
+  return recipe.name_en || recipe.name_zh || recipe.name;
+}
+
+export function getDrinkTypeLabel(type: DrinkType | null, custom: string | null, t: TFunction): string {
+  if (!type) return '';
+  if (type === 'other') return custom || t('drink.other');
+  return t(DRINK_TYPES.find(item => item.value === type)?.label || type);
 }
 
 export function getRoastLabelT(level: RoastLevel | null, t: TFunction): string {

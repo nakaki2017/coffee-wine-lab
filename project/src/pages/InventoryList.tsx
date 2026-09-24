@@ -3,20 +3,24 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Search, Package } from 'lucide-react';
 import { differenceInDays, addDays, parseISO } from 'date-fns';
 import type { Batch, BatchStatus } from '../lib/types';
-import { fetchBatches } from '../lib/utils';
+import { fetchBatches, fetchBeanProfiles } from '../lib/utils';
 import { getStatusLabelT, getStatusBadgeClass, STATUS_ORDER } from '../lib/types';
 import { useTranslation } from '../contexts/LanguageContext';
 
 export default function InventoryList() {
   const { t } = useTranslation();
   const [batches, setBatches] = useState<Batch[]>([]);
+  const [beans, setBeans] = useState<{ id: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [beansLoading, setBeansLoading] = useState(true);
+  const [beansLoadError, setBeansLoadError] = useState(false);
   const [search, setSearch] = useState('');
   const [searchParams] = useSearchParams();
   const statusFilter = searchParams.get('status') as BatchStatus | null;
 
   useEffect(() => {
     loadBatches();
+    loadBeans();
   }, []);
 
   async function loadBatches() {
@@ -27,6 +31,18 @@ export default function InventoryList() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadBeans() {
+    try {
+      const data = await fetchBeanProfiles();
+      setBeans(data);
+    } catch (err) {
+      console.error(err);
+      setBeansLoadError(true);
+    } finally {
+      setBeansLoading(false);
     }
   }
 
@@ -49,7 +65,15 @@ export default function InventoryList() {
     return daysLeft > 0 ? t('inventory.days_left', { days: daysLeft }) : t('dashboard.ready');
   };
 
-  if (loading) {
+  const canCreateBatch = beansLoading || beansLoadError || beans.length > 0;
+  const batchEntryPath = canCreateBatch
+    ? '/inventory/new'
+    : '/beans/new?returnTo=%2Finventory%2Fnew';
+  const batchEntryLabel = canCreateBatch
+    ? t('inventory.add_batch')
+    : t('inventory.add_bean_first');
+
+  if (loading || beansLoading) {
     return (
       <div className="space-y-4 pb-4 sm:pb-0">
         <div className="h-8 w-40 sm:w-48 bg-cream-200 dark:bg-espresso-800 rounded-lg animate-pulse" />
@@ -64,9 +88,9 @@ export default function InventoryList() {
     <div className="space-y-4 sm:space-y-6 pb-4 sm:pb-0">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="page-title">{t('inventory.title')}</h1>
-        <Link to="/inventory/new" className="btn-primary w-full sm:w-auto">
+        <Link to={batchEntryPath} className="btn-primary w-full sm:w-auto">
           <Plus className="w-4 h-4" />
-          {t('inventory.add_batch')}
+          {batchEntryLabel}
         </Link>
       </div>
 
@@ -117,9 +141,9 @@ export default function InventoryList() {
               }
             </p>
             {!search && !statusFilter && (
-              <Link to="/inventory/new" className="btn-primary mt-4">
+              <Link to={batchEntryPath} className="btn-primary mt-4">
                 <Plus className="w-4 h-4" />
-                {t('inventory.add_first_batch')}
+                {canCreateBatch ? t('inventory.add_first_batch') : t('inventory.add_bean_first')}
               </Link>
             )}
           </div>

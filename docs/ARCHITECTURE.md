@@ -129,8 +129,10 @@ coffeelab-web/
 | `/brews/new` | 新建冲煮 | 需要 |
 | `/brews/:id` | 冲煮详情 | 需要 |
 | `/brews/:id/edit` | 编辑冲煮 | 需要 |
-| `/recipes` | 做法列表 | 需要 |
-| `/recipes/new` | 新建做法 | 需要 |
+| `/recipes?kind=brew_method` | 冲煮做法列表 | 需要 |
+| `/recipes?kind=drink` | 咖啡饮品列表 | 需要 |
+| `/recipes/new?kind=brew_method` | 新建冲煮做法 | 需要 |
+| `/recipes/new?kind=drink` | 新建咖啡饮品 | 需要 |
 | `/recipes/:id/edit` | 编辑做法 | 需要 |
 | `/calendar` | 咖啡日历 | 需要 |
 | `/stats` | 统计 | 需要 |
@@ -138,6 +140,17 @@ coffeelab-web/
 【路由约束】
 1. 业务页面必须包在 `AuthGuard` 内。
 2. 未登录访问业务页面跳转 `/auth`。
+
+## 配方模型约束
+
+`recipes` 同时承载两类内容，但通过 `recipe_kind` 严格区分：
+
+- `brew_method`：必须有 `device`，可保存研磨度、水温、粉量、液量、比例、时间、注水方案和滤纸。
+- `drink`：必须有 `drink_type`，`device` 为空，所有冲煮参数为空；可保存饮品原料、制作步骤和说明。
+- `drink_type=other` 时使用 `drink_type_custom` 保存自定义类型。
+- `name` 兼容旧数据和用户自定义名称；内置配方使用 `name_zh`、`name_en` 提供双语显示。
+- 页面通过 `src/lib/types.ts` 的 `getRecipeDisplayName` 选择当前语言名称，服务层在 `src/lib/utils.ts` 统一归一化写入。
+- 饮品不能进入库存扣减型冲煮流程；`BrewForm` 只加载 `brew_method`。
 3. 无匹配路由跳转 `/`。
 
 ## 五、数据模型
@@ -156,14 +169,18 @@ coffeelab-web/
 ```text
 auth.users
   ├─ bean_profiles
+  │    ├─ bean_images
   │    └─ batches
   │         └─ brew_records
   │              └─ cupping_records
   ├─ recipes
+  │    └─ recipe_images
   └─ daily_entries
 
 flavor_tag_definitions: 公共只读
 storage.daily-photos: 用户目录隔离
+storage.bean-images: 私有，按 user_id / bean_id 隔离
+storage.recipe-images: 私有，区分 builtin 和 user / user_id / recipe_id
 ```
 
 ### 5.3 核心表
@@ -172,6 +189,11 @@ storage.daily-photos: 用户目录隔离
 - 作用：豆种档案。
 - 关键字段：`brand`、`bean_name`、`origin_country`、`process_method`、`roast_level`、`flavor_description`、`recommended_resting_days`。
 - 约束：属于单个用户。
+
+【bean_images】
+- 作用：豆种图片、顺序和封面。
+- 关键字段：`bean_profile_id`、`user_id`、`source_type`、`storage_path`、`external_url`、`sort_order`。
+- 约束：排序位只能为 0-2，同一豆种最多 3 张；`sort_order=0` 为封面。
 
 【batches】
 - 作用：一次购买记录 / 库存批次。
@@ -190,8 +212,14 @@ storage.daily-photos: 用户目录隔离
 
 【recipes】
 - 作用：内置做法和用户自定义做法。
-- 关键字段：`device`、默认研磨、水温、粉量、液量、比例、时间、注水方案、滤纸、说明。
+- 关键字段：`recipe_kind`、`device`、默认参数、`ingredients`、`steps`、说明。
 - 公共模板：`user_id = null` 且 `is_default = true`。
+- 用户配方：`user_id = auth.uid()` 且 `is_default = false`，仅本人可见。
+
+【recipe_images】
+- 作用：配方图片、顺序和封面。
+- 关键字段：`recipe_id`、`source_type`、`storage_path`、`external_url`、`sort_order`。
+- 约束：排序位只能为 0-4，同一配方最多 5 张；内置图片普通用户只读。
 
 【daily_entries】
 - 作用：日历当天照片和备注。
@@ -236,6 +264,8 @@ storage.daily-photos: 用户目录隔离
 3. `recipes` 支持读取自己的做法和公共默认做法。
 4. `flavor_tag_definitions` 对 authenticated 用户只读。
 5. `daily-photos` storage bucket 按用户 id 文件夹隔离。
+6. `bean-images` 和 `recipe-images` 使用私有 Bucket，页面通过 1 小时 signed URL 读取。
+7. 普通用户只能写入自己的非内置配方，不能把 `is_default` 改为 true。
 
 【禁止】
 1. 禁止在前端绕过 RLS 假设数据安全。
@@ -287,8 +317,10 @@ storage.daily-photos: 用户目录隔离
 8. 不要删除现有 migration。新增变更必须新建 migration。
 9. 不要在页面里直接做复杂统计 SQL。MVP 可前端聚合，后续数据量大再做视图或 RPC。
 10. 不要让图片上传绕过用户目录隔离。
-11. 不要破坏深色模式 class。
-12. 不要用新的 UI 库替换现有 Tailwind 组件体系，除非重做设计系统。
+11. 豆种/配方图片必须在浏览器压缩到 800KB 内，Bucket 以 1MB 再兜底。
+12. 数据库只保存 Storage path，不保存会过期的 signed URL。
+13. 不要破坏深色模式 class。
+14. 不要用新的 UI 库替换现有 Tailwind 组件体系，除非重做设计系统。
 
 ## 十一、禁止破坏的逻辑
 
@@ -302,6 +334,9 @@ storage.daily-photos: 用户目录隔离
 8. 中文默认：无本地语言设置时必须使用中文。
 9. 内置做法读取：用户必须能看到 `is_default = true` 的公共做法。
 10. 杯测更新：已有杯测时更新原记录，不新增重复记录。
+11. 豆种最多 3 张图，配方最多 5 张图，首张图为封面。
+12. 饮品配方不进入冲煮记录流程，不触发库存扣减。
+13. 内置配方对登录用户只读，用户配方仅创建者可见。
 
 ## 十二、验收标准
 
@@ -330,3 +365,4 @@ storage.daily-photos: 用户目录隔离
 2. React Router 7 要求较新的 Node，开发环境建议升级 Node 20。
 3. 当前 build 主包较大，后续需要按路由 lazy load。
 4. 当前 `daily-photos` bucket 是 public。若照片有隐私风险，后续改私有 bucket + signed URL。
+5. 内置配方当前通过 migration 维护，内容增长后需单独建设受控发布工具。

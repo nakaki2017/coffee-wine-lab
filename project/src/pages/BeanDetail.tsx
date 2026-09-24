@@ -17,6 +17,7 @@ import { fetchBeanProfile, fetchBatches, deleteBeanProfile } from '../lib/utils'
 import { getRoastLabelT, getStatusLabelT, getStatusBadgeClass } from '../lib/types';
 import { useToast } from '../contexts/ToastContext';
 import { useTranslation } from '../contexts/LanguageContext';
+import ImageGallery from '../components/ImageGallery';
 
 export default function BeanDetail() {
   const { id } = useParams();
@@ -92,12 +93,8 @@ export default function BeanDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Info */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="card">
-            {bean.image_url && (
-              <div className="h-48 bg-cream-200 dark:bg-espresso-800 overflow-hidden rounded-t-2xl">
-                <img src={bean.image_url} alt={bean.bean_name} className="w-full h-full object-cover" />
-              </div>
-            )}
+          <div className="card overflow-hidden">
+            <ImageGallery images={bean.images || []} fallbackUrl={bean.image_url} alt={bean.bean_name} />
             <div className="card-body space-y-4">
               <div>
                 <h2 className="text-xl font-display font-bold text-espresso-900 dark:text-cream-100">

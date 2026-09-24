@@ -93,9 +93,9 @@ export default function BeansList() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(bean => (
             <Link key={bean.id} to={`/beans/${bean.id}`} className="card-hover overflow-hidden">
-              {bean.image_url ? (
+              {(bean.images?.[0]?.url || bean.image_url) ? (
                 <div className="h-32 bg-cream-200 dark:bg-espresso-800 overflow-hidden">
-                  <img src={bean.image_url} alt={bean.bean_name} className="w-full h-full object-cover" />
+                  <img src={bean.images?.[0]?.url || bean.image_url || ''} alt={bean.bean_name} className="w-full h-full object-cover" />
                 </div>
               ) : (
                 <div className="h-32 bg-gradient-to-br from-coffee-200 to-coffee-400 dark:from-coffee-800 dark:to-coffee-600 flex items-center justify-center">

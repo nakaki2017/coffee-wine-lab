@@ -3,17 +3,19 @@ import { Link } from 'react-router-dom';
 import { differenceInDays, format, addDays, parseISO } from 'date-fns';
 import {
   Coffee,
+  Bean,
   Package,
   Timer,
   CheckCircle2,
   Truck,
   FlaskConical,
+  CalendarDays,
   Plus,
   ArrowRight,
   AlertTriangle,
 } from 'lucide-react';
 import type { Batch, BrewRecord } from '../lib/types';
-import { fetchBatches, fetchBrewRecords } from '../lib/utils';
+import { fetchBatches, fetchBeanProfiles, fetchBrewRecords } from '../lib/utils';
 import { getDeviceLabelT, getRoastLabelT } from '../lib/types';
 import { useTranslation } from '../contexts/LanguageContext';
 
@@ -21,6 +23,7 @@ export default function Dashboard() {
   const { t } = useTranslation();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [recentBrews, setRecentBrews] = useState<BrewRecord[]>([]);
+  const [beanCount, setBeanCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,12 +32,14 @@ export default function Dashboard() {
 
   async function loadData() {
     try {
-      const [batchData, brewData] = await Promise.all([
+      const [batchData, brewData, beanData] = await Promise.all([
         fetchBatches(),
         fetchBrewRecords(5),
+        fetchBeanProfiles(),
       ]);
       setBatches(batchData);
       setRecentBrews(brewData);
+      setBeanCount(beanData.length);
     } catch (err) {
       console.error('Failed to load dashboard:', err);
     } finally {
@@ -86,14 +91,31 @@ export default function Dashboard() {
   const lowStock = getLowStockBatches();
   const oldOpen = getOldOpenBatches();
   const hasAlerts = lowStock.length > 0 || oldOpen.length > 0;
+  const hasBeans = beanCount > 0;
+  const hasUsableBatch = batches.some(b => b.status === 'ready' || b.status === 'in_use');
+  const hasBrews = recentBrews.length > 0;
+  const batchSetupPath = hasBeans ? '/inventory/new' : '/beans/new?returnTo=%2Finventory%2Fnew';
+  const quickActionPath = hasUsableBatch ? '/brews/new' : batchSetupPath;
+  const quickActionLabel = hasUsableBatch
+    ? t('dashboard.quick_brew')
+    : hasBeans
+      ? t('inventory.add_batch')
+      : t('inventory.add_bean_first');
+
+  const setupSteps = [
+    { icon: Bean, title: t('setup.step_bean'), description: t('setup.step_bean_desc'), complete: hasBeans, unlocked: true, to: '/beans/new' },
+    { icon: Package, title: t('setup.step_batch'), description: t('setup.step_batch_desc'), complete: batches.length > 0, unlocked: hasBeans, to: batchSetupPath },
+    { icon: FlaskConical, title: t('setup.step_brew'), description: t('setup.step_brew_desc'), complete: hasBrews, unlocked: hasUsableBatch, to: '/brews/new' },
+    { icon: CalendarDays, title: t('setup.step_calendar'), description: t('setup.step_calendar_desc'), complete: false, unlocked: hasBrews, to: '/calendar' },
+  ];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="page-title">{t('dashboard.title')}</h1>
-        <Link to="/brews/new" className="btn-primary">
+        <Link to={quickActionPath} className="btn-primary">
           <Plus className="w-4 h-4" />
-          {t('dashboard.quick_brew')}
+          {quickActionLabel}
         </Link>
       </div>
 
@@ -119,6 +141,62 @@ export default function Dashboard() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {!hasBrews ? (
+        <div className="card">
+          <div className="card-header">
+            <h2 className="section-title">{t('setup.title')}</h2>
+            <p className="mt-1 text-sm text-espresso-500 dark:text-espresso-400">{t('setup.description')}</p>
+          </div>
+          <div className="card-body space-y-3">
+            {setupSteps.map(({ icon: Icon, title, description, complete, unlocked, to }, index) => (
+              <div key={title} className={`flex gap-3 rounded-xl border p-3 ${
+                complete
+                  ? 'border-sage-200 bg-sage-50 dark:border-sage-800 dark:bg-sage-950/40'
+                  : unlocked
+                    ? 'border-cream-200 dark:border-espresso-800'
+                    : 'border-cream-100 opacity-60 dark:border-espresso-800'
+              }`}>
+                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                  complete ? 'bg-sage-100 text-sage-700 dark:bg-sage-900 dark:text-sage-300' : 'bg-cream-100 text-coffee-700 dark:bg-espresso-800 dark:text-coffee-300'
+                }`}>
+                  {complete ? <CheckCircle2 className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="font-medium text-espresso-900 dark:text-cream-100">
+                      {index + 1}. {title}
+                    </h3>
+                    {complete ? (
+                      <span className="text-xs font-medium text-sage-700 dark:text-sage-300">{t('setup.done')}</span>
+                    ) : unlocked ? (
+                      <Link to={to} className="inline-flex items-center gap-1 text-xs font-medium text-coffee-600 hover:underline dark:text-coffee-400">
+                        {t('setup.start')} <ArrowRight className="h-3.5 w-3.5" />
+                      </Link>
+                    ) : (
+                      <span className="text-xs text-espresso-400 dark:text-espresso-500">{t('setup.locked')}</span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-sm text-espresso-500 dark:text-espresso-400">{description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3 rounded-2xl border border-sage-200 bg-sage-50 px-4 py-3 dark:border-sage-800 dark:bg-sage-950/40 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5 shrink-0 text-sage-600 dark:text-sage-400" />
+            <div>
+              <p className="font-medium text-sage-900 dark:text-sage-200">{t('setup.complete_title')}</p>
+              <p className="text-sm text-sage-700 dark:text-sage-300">{t('setup.complete_text')}</p>
+            </div>
+          </div>
+          <Link to="/calendar" className="inline-flex items-center gap-1 text-sm font-medium text-sage-800 hover:underline dark:text-sage-200">
+            {t('nav.calendar')} <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       )}
 
@@ -260,9 +338,9 @@ export default function Dashboard() {
             <FlaskConical className="empty-icon" />
             <p className="empty-title">{t('dashboard.no_brews_yet')}</p>
             <p className="empty-text">{t('dashboard.no_brews_text')}</p>
-            <Link to="/brews/new" className="btn-primary mt-4">
+            <Link to={quickActionPath} className="btn-primary mt-4">
               <Plus className="w-4 h-4" />
-              {t('dashboard.record_brew')}
+              {quickActionLabel}
             </Link>
           </div>
         ) : (
@@ -298,26 +376,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Empty State when nothing at all */}
-      {batches.length === 0 && recentBrews.length === 0 && (
-        <div className="card">
-          <div className="card-body empty-state">
-            <Coffee className="empty-icon" />
-            <p className="empty-title">{t('dashboard.welcome')}</p>
-            <p className="empty-text">{t('dashboard.welcome_text')}</p>
-            <div className="flex gap-3 mt-4">
-              <Link to="/beans/new" className="btn-primary">
-                <Plus className="w-4 h-4" />
-                {t('beans.add')}
-              </Link>
-              <Link to="/inventory/new" className="btn-secondary">
-                <Package className="w-4 h-4" />
-                {t('inventory.add_batch')}
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
